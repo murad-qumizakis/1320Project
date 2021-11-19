@@ -7,6 +7,7 @@
  * Author: Murad Qumizakis
  * 
  */
+
 const unzipper = require('unzipper'),
   fs = require("fs"),
   PNG = require('pngjs').PNG,
@@ -20,9 +21,12 @@ const unzipper = require('unzipper'),
  * @param {string} pathOut 
  * @return {promise}
  */
+
+
 const unzip = (pathIn, pathOut) => {
-  fs.createReadStream('myfile.zip')
-    .pipe(unzipper.Extract({ path: 'unzipped' }));
+  return fs.createReadStream('myfile.zip')
+    .pipe(unzipper.Extract({ path: 'unzipped' }))
+    .promise()
   //console.log("Extraction ppertation complete") (Use promise to only show this message when files are unzipped)
 };
 
@@ -46,7 +50,7 @@ const readDir = dir => {
   })
 };
 
-let png = readDir("unzipped").then(files => console.log(files))
+// let png = readDir("unzipped").then(files => console.log(files)) //.catch(err) ??
 
 /**
  * Description: Read in png file by given pathIn, 
@@ -60,31 +64,38 @@ let png = readDir("unzipped").then(files => console.log(files))
 
 const grayScale = (pathIn, pathOut) => {
   fs.createReadStream(pathIn)
-  .pipe(
-    new PNG({
-      filterType: 4,
-    })
-  )
-  .on("parsed", function () {
-    for (var y = 0; y < this.height; y++) {
-      for (var x = 0; x < this.width; x++) {
-        var idx = (this.width * y + x) << 2;
- 
-        // invert color
-        this.data[idx] = 255 - this.data[idx];
-        this.data[idx + 1] = 255 - this.data[idx + 1];
-        this.data[idx + 2] = 255 - this.data[idx + 2];
- 
-        // and reduce opacity
-        this.data[idx + 3] = this.data[idx + 3] >> 1;
+    .pipe(
+      new PNG({
+        filterType: 4,
+      })
+    )
+    .on("parsed", function () {
+      for (var y = 0; y < this.height; y++) {
+        for (var x = 0; x < this.width; x++) {
+          var idx = (this.width * y + x) << 2;
+
+          let red = this.data[idx];
+          let green = this.data[idx + 1];
+          let blue = this.data[idx + 2];
+
+          let grayscaledValue = (red + green + blue) / 3;
+
+          // invert color
+          this.data[idx] = grayscaledValue;         // R
+          this.data[idx + 1] = grayscaledValue          // G
+          this.data[idx + 2] = grayscaledValue          // B
+
+
+          // and reduce opacity
+          // this.data[idx + 3] = this.data[idx + 3] >> 1;
+        }
       }
-    }
- 
-    this.pack().pipe(fs.createWriteStream(pathOut));
-  });
+
+      this.pack().pipe(fs.createWriteStream(pathOut));
+    });
 }
 
-grayScale("")
+// grayScale("")
 
 
 
@@ -98,3 +109,9 @@ module.exports = {
   grayScale
 };
 
+
+
+
+ // this.data[idx] = 255 - this.data[idx]; // R
+          // this.data[idx + 1] = 255 - this.data[idx + 1]; // G
+          // this.data[idx + 2] = 255 - this.data[idx + 2]; // B
